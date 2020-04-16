@@ -1,0 +1,108 @@
+-- This is a threaded script, and is just an example!
+
+function sysCall_threadmain()
+    jointHandles={-1,-1,-1,-1,-1,-1}
+    for i=1,6,1 do
+        jointHandles[i]=sim.getObjectHandle('UR3_joint'..i)
+    end
+    
+    proxys = sim.getObjectHandle('Proximity_sensor')
+    check_proxy = sim.getObjectHandle('Proximity_sensor0')
+
+    -- Set-up some of the RML vectors:
+    vel=180
+    accel=40
+    jerk=80
+    currentVel={0,0,0,0,0,0,0}
+    currentAccel={0,0,0,0,0,0,0}
+    maxVel={vel*math.pi/180,vel*math.pi/180,vel*math.pi/180,vel*math.pi/180,vel*math.pi/180,vel*math.pi/180}
+    maxAccel={accel*math.pi/180,accel*math.pi/180,accel*math.pi/180,accel*math.pi/180,accel*math.pi/180,accel*math.pi/180}
+    maxJerk={jerk*math.pi/180,jerk*math.pi/180,jerk*math.pi/180,jerk*math.pi/180,jerk*math.pi/180,jerk*math.pi/180}
+    targetVel={0,0,0,0,0,0}
+    
+    dr = math.pi/180.0
+    g = 100    -- number of items user wants to stack, input a very large number if you want it to continue forever
+    c = 0
+    t1 = 90	--stack location at this position 
+    t2 = 10	
+    t3 = 115
+    while(g > 0)      --run until the desired number of items are stacked
+    do
+        default={0*dr,0*dr,0*dr,0*dr,-90*dr,0}   -- default position
+        sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,default,targetVel)
+        result, dis, point = sim.readProximitySensor(proxys)
+        if result == 1 then   -- checks that there is an item on the conveyor belt
+            pickup={-107*dr,13*dr,73*dr,4*dr,-90*dr,0}   -- pickup location defined
+            sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,pickup,targetVel) 
+            
+            sim.setIntegerSignal('BaxterVacuumCup_active', 1)   --turns on the vacuum cup
+
+            sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,default,targetVel)
+            
+            result2, dis2, point2 = sim.readProximitySensor(check_proxy)
+            if result2 == 1 then   -- checks to see that the vacumm cup picked up the object
+                rot={t1*dr,t2*dr,0*dr,0*dr,-90*dr,0}
+                sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,rot,targetVel)
+                drop={t1*dr,t2*dr,t3*dr,(90-t2-t3)*dr,-90*dr,0}  -- move to the destination
+                sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,drop,targetVel)
+                sim.setIntegerSignal('BaxterVacuumCup_active', 0) -- drop off the object
+            end
+            if result2 == 0 then   -- if an error in picking up the object, crash
+                sim.setIntegerSignal('BaxterVacuumCup_active', 0)
+                crash={0*dr,-90*dr,-90*dr,-90*dr,-90*dr,0}  --crash position defined
+                sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,crash,targetVel)
+                break
+            end
+        end
+        if result == 0 then  -- wait for the object to appear on the conveyor belt
+            sim.rmlMoveToJointPositions(jointHandles,-1,currentVel,currentAccel,maxVel,maxAccel,maxJerk,default,targetVel)
+        end
+        c = c + 1     -- increament the count for the number of items stacked; this is used to define new positions for now
+        g = g - 1     --decreament the number of desired stack items list
+        if c == 1 then
+            t1 = 98
+            t2 = 30
+            t3 = 85
+        end
+        if c == 2 then
+            t1 = 84
+            t2 = 23
+            t3 = 95
+        end
+        if c == 3 then
+            t1 = 101
+            t2 = 53
+            t3 = 47
+        end
+        if c == 4 then
+            t1 = 90
+            t2 = 44
+            t3 = 53
+        end
+        if c == 5 then
+            t1 = 79
+            t2 = 39
+            t3 = 67
+        end
+        if c == 6 then
+            t1 = 92
+            t2 = 11
+            t3 = 78
+        end
+        if c == 7 then
+            t1 = 95
+            t2 = 35
+            t3 = 43
+        end
+        if c == 8 then
+            t1 = 84
+            t2 = 27
+            t3 = 56
+        end
+        if c == 9 then
+            t1 = 90
+            t2 = 38
+            t3 = -2
+        end
+    end    
+end
